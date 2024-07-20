@@ -5,6 +5,7 @@ from project_utils import read_file
 from openai import OpenAI
 
 model_name = "gpt-3.5-turbo"
+client = OpenAI()
 
 
 def get_encoding():
@@ -24,10 +25,9 @@ def split_document(document, chunk_size, overlap):
     return chunks
 
 
-def summarize_chunk(chunk):
+def summarize_chunk(chunk, open_ai_client):
     try:
-        client = OpenAI()
-        response = client.chat.completions.create(
+        response = open_ai_client.chat.completions.create(
             model=model_name,
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
@@ -42,17 +42,17 @@ def summarize_chunk(chunk):
     except openai.RateLimitError:
         # Handle rate limit errors, e.g., exponential backoff
         time.sleep(60)
-        return summarize_chunk(chunk)
+        return summarize_chunk(chunk, open_ai_client)
     except Exception as e:
         print(f"Error summarizing chunk: {e}")
         return ""
 
 
-def summarize_document(document, chunk_size=1000, overlap=200):
+def summarize_document(document, open_ai_client, chunk_size=1000, overlap=200):
     chunks = split_document(document, chunk_size, overlap)
-    summaries = [summarize_chunk(chunk) for chunk in chunks]
+    summaries = [summarize_chunk(chunk, open_ai_client) for chunk in chunks]
     return "\n".join(summaries)
 
 
 content = read_file("long_text.txt")
-print(summarize_document(document=content))
+print(summarize_document(document=content, open_ai_client=client))
